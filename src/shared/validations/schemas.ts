@@ -15,8 +15,6 @@ export const CreateEmployeeSchema = z.object({
   fullName: z.string().min(1, "El nombre es requerido").max(100),
   position: z.string().min(1, "El cargo es requerido").max(60),
   shiftId: z.string().min(1, "El turno es requerido"),
-  baseSalary: z.number().min(0, "El salario no puede ser negativo").optional().default(0),
-  salaryPeriod: z.enum(["DIA", "MENSUAL"]).optional().default("MENSUAL"),
   active: z.boolean().optional().default(true),
 });
 
@@ -25,8 +23,6 @@ export const UpdateEmployeeSchema = z.object({
   fullName: z.string().min(1).max(100).optional(),
   position: z.string().min(1).max(60).optional(),
   shiftId: z.string().min(1).optional(),
-  baseSalary: z.number().min(0).optional(),
-  salaryPeriod: z.enum(["DIA", "MENSUAL"]).optional(),
   active: z.boolean().optional(),
 });
 
@@ -50,26 +46,18 @@ export const ReportQuerySchema = z.object({
     .optional(),
 });
 
-// ─── PayrollRule ─────────────────────────────────────────────────────────────
+// ─── Settings ────────────────────────────────────────────────────────────────
 
-export const CreatePayrollRuleSchema = z.object({
-  name: z.string().min(1, "El nombre es requerido").max(80),
-  type: z.enum(["DESCUENTO", "CREDITO", "BONO", "TURNO_EXTRA"], { message: "Tipo inválido" }),
-  amount: z.number().positive("El monto debe ser mayor a 0"),
-  description: z.string().max(200).optional(),
-  period: z.enum(["DIA", "MENSUAL"]).optional().default("MENSUAL"),
-  activeDays: z.array(z.number().int().min(0).max(6)).nullable().optional(),
+export const CreateSettingSchema = z.object({
+  key: z.string().min(1, "La clave es requerida").max(80),
+  value: z.string().min(1, "El valor es requerido").max(255),
+  active: z.boolean().optional().default(true),
+  employeeIds: z.array(z.string().min(1)).optional().default([]),
 });
 
-export const UpdatePayrollRuleSchema = z.object({
-  name: z.string().min(1).max(80).optional(),
-  amount: z.number().positive().optional(),
-  description: z.string().max(200).nullable().optional(),
+export const UpdateSettingSchema = z.object({
+  key: z.string().min(1).max(80).optional(),
+  value: z.string().min(1).max(255).optional(),
   active: z.boolean().optional(),
-  period: z.enum(["DIA", "MENSUAL"]).optional(),
-  activeDays: z.array(z.number().int().min(0).max(6)).nullable().optional(),
-});
-
-export const AssignRuleSchema = z.object({
-  ruleId: z.string().min(1),
+  employeeIds: z.array(z.string().min(1)).optional(),
 });

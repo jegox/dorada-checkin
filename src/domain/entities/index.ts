@@ -5,11 +5,8 @@ export interface Employee {
   fullName: string;
   position: string;
   active: boolean;
-  baseSalary: number;
-  salaryPeriod: "DIA" | "MENSUAL";
   shiftId: string;
   shift?: Shift;
-  payrollRules?: EmployeePayrollRule[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -35,25 +32,20 @@ export interface Attendance {
   createdAt: Date;
 }
 
-export type PayrollRuleType = "DESCUENTO" | "CREDITO" | "BONO" | "TURNO_EXTRA";
-
-export interface PayrollRule {
+export interface Setting {
   id: string;
-  name: string;
-  type: PayrollRuleType;
-  amount: number;
-  description?: string | null;
+  key: string;
+  value: string;
   active: boolean;
-  period: "DIA" | "MENSUAL";
-  activeDays: number[] | null; // null = siempre; [0-6] = días específicos (0=Dom)
+  employees?: EmployeeSetting[];
   createdAt: Date;
   updatedAt: Date;
 }
 
-export interface EmployeePayrollRule {
+export interface EmployeeSetting {
   id: string;
+  settingId: string;
   employeeId: string;
-  ruleId: string;
-  rule?: PayrollRule;
+  employee?: Employee;
   createdAt: Date;
 }

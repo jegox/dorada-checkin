@@ -10,8 +10,6 @@ interface EmployeeFormInput {
   fullName: string;
   position: string;
   shiftId: string;
-  baseSalary: string;
-  salaryPeriod: "DIA" | "MENSUAL";
 }
 
 interface UseEmpleadosReturn {
@@ -41,8 +39,6 @@ const EMPTY_FORM: EmployeeFormInput = {
   fullName: "",
   position: "",
   shiftId: "",
-  baseSalary: "0",
-  salaryPeriod: "MENSUAL",
 };
 
 export function useEmpleados(): UseEmpleadosReturn {
@@ -92,8 +88,6 @@ export function useEmpleados(): UseEmpleadosReturn {
       fullName: emp.fullName,
       position: emp.position,
       shiftId: emp.shiftId,
-      baseSalary: String(emp.baseSalary ?? 0),
-      salaryPeriod: (emp.salaryPeriod as "DIA" | "MENSUAL") ?? "MENSUAL",
     });
     setError("");
     setShowFormState(true);
@@ -119,14 +113,11 @@ export function useEmpleados(): UseEmpleadosReturn {
       }
       setSaving(true);
       setError("");
-      const baseSalary = parseFloat(form.baseSalary) || 0;
       const payload = {
         document: form.document,
         fullName: form.fullName,
         position: form.position,
         shiftId: form.shiftId,
-        baseSalary,
-        salaryPeriod: form.salaryPeriod,
       };
       try {
         if (editingEmployee) {

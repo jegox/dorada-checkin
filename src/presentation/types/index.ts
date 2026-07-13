@@ -12,8 +12,6 @@ export interface EmployeeDTO {
   fullName: string;
   position: string;
   active: boolean;
-  baseSalary: number;
-  salaryPeriod: "DIA" | "MENSUAL";
   shiftId: string;
   shift: ShiftDTO;
 }
@@ -47,46 +45,17 @@ export interface ReportDayDTO {
   late: number;
 }
 
-export type PayrollRuleType = "DESCUENTO" | "CREDITO" | "BONO" | "TURNO_EXTRA";
-
-export interface PayrollRuleDTO {
+export interface SettingEmployeeDTO {
   id: string;
-  name: string;
-  type: PayrollRuleType;
-  amount: number;
-  description?: string | null;
-  active: boolean;
-  period: "DIA" | "MENSUAL";
-  activeDays: number[] | null;
-  createdAt: string;
-}
-
-export interface EmployeeRuleDTO {
-  id: string;
-  employeeId: string;
-  ruleId: string;
-  rule: PayrollRuleDTO;
-  createdAt: string;
-}
-
-export interface LiquidacionItemDTO {
-  employeeId: string;
-  document: string;
   fullName: string;
-  position: string;
-  shift: string;
-  baseSalary: number;
-  quincenal: number;
-  creditos: number;
-  bonos: number;
-  turnosExtras: number;
-  descuentos: number;
-  total: number;
-  rules: Array<{ name: string; type: PayrollRuleType; amount: number }>;
+  document: string;
 }
 
-export interface LiquidacionDTO {
-  period: { from: string; to: string; label: string };
-  items: LiquidacionItemDTO[];
-  grandTotal: number;
+export interface SettingDTO {
+  id: string;
+  key: string;
+  value: string;
+  active: boolean;
+  employees: SettingEmployeeDTO[];
+  createdAt: string;
 }

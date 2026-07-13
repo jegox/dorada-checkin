@@ -4,9 +4,8 @@ import type {
   Attendance,
   AttendanceType,
   AttendanceStatus,
-  PayrollRule,
-  PayrollRuleType,
-  EmployeePayrollRule,
+  Setting,
+  EmployeeSetting,
 } from "@/domain/entities";
 
 export interface IEmployeeRepository {
@@ -40,30 +39,24 @@ export interface IAttendanceRepository {
   }): Promise<Attendance>;
 }
 
-export interface IPayrollRuleRepository {
-  findAll(): Promise<PayrollRule[]>;
-  findById(id: string): Promise<PayrollRule | null>;
+export interface ISettingRepository {
+  findAll(): Promise<Setting[]>;
+  findById(id: string): Promise<Setting | null>;
   create(data: {
-    name: string;
-    type: PayrollRuleType;
-    amount: number;
-    description?: string;
-    period?: string;
-    activeDays?: number[] | null;
-  }): Promise<PayrollRule>;
+    key: string;
+    value: string;
+    active?: boolean;
+    employeeIds?: string[];
+  }): Promise<Setting>;
   update(
     id: string,
     data: {
-      name?: string;
-      amount?: number;
-      description?: string | null;
+      key?: string;
+      value?: string;
       active?: boolean;
-      period?: string;
-      activeDays?: number[] | null;
+      employeeIds?: string[];
     },
-  ): Promise<PayrollRule>;
-  delete(id: string): Promise<void>;
-  assignToEmployee(employeeId: string, ruleId: string): Promise<EmployeePayrollRule>;
-  removeFromEmployee(employeeId: string, ruleId: string): Promise<void>;
-  findByEmployee(employeeId: string): Promise<(EmployeePayrollRule & { rule: PayrollRule })[]>;
+  ): Promise<Setting>;
+  setActive(id: string, active: boolean): Promise<Setting>;
+  findEmployeeLinks(settingId: string): Promise<EmployeeSetting[]>;
 }

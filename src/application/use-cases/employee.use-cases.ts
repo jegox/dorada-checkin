@@ -37,8 +37,6 @@ export class CreateEmployeeUseCase {
       fullName: dto.fullName,
       position: dto.position,
       shiftId: dto.shiftId,
-      baseSalary: dto.baseSalary ?? 0,
-      salaryPeriod: dto.salaryPeriod ?? "MENSUAL",
       active: dto.active ?? true,
     });
   }

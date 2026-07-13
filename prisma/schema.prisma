@@ -17,20 +17,18 @@ model Shift {
 }
 
 model Employee {
-  id           String                @id @default(cuid())
-  document     String                @unique
-  fullName     String
-  position     String
-  active       Boolean               @default(true)
-  deviceCode   String?               @unique
-  baseSalary   Decimal               @default(0) @db.Decimal(12, 2)
-  salaryPeriod String                @default("MENSUAL") // "DIA" | "MENSUAL"
-  shiftId      String
-  shift        Shift                 @relation(fields: [shiftId], references: [id])
-  attendances  Attendance[]
-  payrollRules EmployeePayrollRule[]
-  createdAt    DateTime              @default(now())
-  updatedAt    DateTime              @updatedAt
+  id          String            @id @default(cuid())
+  document    String            @unique
+  fullName    String
+  position    String
+  active      Boolean           @default(true)
+  deviceCode  String?           @unique
+  shiftId     String
+  shift       Shift             @relation(fields: [shiftId], references: [id])
+  attendances Attendance[]
+  settings    EmployeeSetting[]
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
 }
 
 model Attendance {
@@ -53,34 +51,23 @@ enum AttendanceStatus {
   EARLY
 }
 
-enum PayrollRuleType {
-  DESCUENTO
-  CREDITO
-  BONO
-  TURNO_EXTRA
+model Setting {
+  id        String            @id @default(cuid())
+  key       String
+  value     String
+  active    Boolean           @default(true)
+  employees EmployeeSetting[]
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
 }
 
-model PayrollRule {
-  id          String                @id @default(cuid())
-  name        String
-  type        PayrollRuleType
-  amount      Decimal               @db.Decimal(12, 2)
-  description String?
-  active      Boolean               @default(true)
-  period      String                @default("MENSUAL") // "DIA" | "MENSUAL"
-  activeDays  Json?                 // null = siempre; [1,2,3,4,5] = días de semana (0=Dom…6=Sáb). Solo para tipo BONO.
-  employees   EmployeePayrollRule[]
-  createdAt   DateTime              @default(now())
-  updatedAt   DateTime              @updatedAt
-}
-
-model EmployeePayrollRule {
-  id         String      @id @default(cuid())
+model EmployeeSetting {
+  id         String   @id @default(cuid())
+  settingId  String
   employeeId String
-  ruleId     String
-  employee   Employee    @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  rule       PayrollRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
-  createdAt  DateTime    @default(now())
+  setting    Setting  @relation(fields: [settingId], references: [id], onDelete: Cascade)
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
 
-  @@unique([employeeId, ruleId])
+  @@unique([settingId, employeeId])
 }

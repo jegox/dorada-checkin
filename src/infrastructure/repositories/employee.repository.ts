@@ -8,10 +8,7 @@ export class PrismaEmployeeRepository implements IEmployeeRepository {
       include: { shift: true },
       orderBy: { fullName: "asc" },
     });
-    return employees.map((e) => ({
-      ...e,
-      baseSalary: Number(e.baseSalary),
-    })) as unknown as Employee[];
+    return employees as unknown as Employee[];
   }
 
   async findById(id: string): Promise<Employee | null> {
@@ -20,7 +17,7 @@ export class PrismaEmployeeRepository implements IEmployeeRepository {
       include: { shift: true },
     });
     if (!employee) return null;
-    return { ...employee, baseSalary: Number(employee.baseSalary) } as unknown as Employee;
+    return employee as unknown as Employee;
   }
 
   async findByDocument(document: string): Promise<Employee | null> {
@@ -29,7 +26,7 @@ export class PrismaEmployeeRepository implements IEmployeeRepository {
       include: { shift: true },
     });
     if (!employee) return null;
-    return { ...employee, baseSalary: Number(employee.baseSalary) } as unknown as Employee;
+    return employee as unknown as Employee;
   }
 
   async create(data: Omit<Employee, "id" | "createdAt" | "updatedAt">): Promise<Employee> {
@@ -39,13 +36,11 @@ export class PrismaEmployeeRepository implements IEmployeeRepository {
         fullName: data.fullName,
         position: data.position,
         active: data.active,
-        baseSalary: data.baseSalary ?? 0,
-        salaryPeriod: data.salaryPeriod ?? "MENSUAL",
         shiftId: data.shiftId,
       },
       include: { shift: true },
     });
-    return { ...employee, baseSalary: Number(employee.baseSalary) } as unknown as Employee;
+    return employee as unknown as Employee;
   }
 
   async update(id: string, data: Partial<Employee>): Promise<Employee> {
@@ -57,11 +52,9 @@ export class PrismaEmployeeRepository implements IEmployeeRepository {
         ...(data.position !== undefined && { position: data.position }),
         ...(data.shiftId !== undefined && { shiftId: data.shiftId }),
         ...(data.active !== undefined && { active: data.active }),
-        ...(data.baseSalary !== undefined && { baseSalary: data.baseSalary }),
-        ...(data.salaryPeriod !== undefined && { salaryPeriod: data.salaryPeriod }),
       },
       include: { shift: true },
     });
-    return { ...employee, baseSalary: Number(employee.baseSalary) } as unknown as Employee;
+    return employee as unknown as Employee;
   }
 }

@@ -1,0 +1,38 @@
+appId: "com.doradacheck.app"
+productName: "Dorada Check"
+artifactName: "${productName}-${version}.${ext}"
+directories:
+  output: dist
+
+files:
+  - electron/**
+  - out/**
+  - package.json
+
+asar: true
+
+# Si usas módulos nativos (.node), desempacalos del asar:
+# asarUnpack:
+#   - "**/*.node"
+#   - "node_modules/better-sqlite3/**"
+
+mac:
+  target:
+    - dmg
+  category: public.app-category.business
+
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowElevation: true
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+
+publish: null

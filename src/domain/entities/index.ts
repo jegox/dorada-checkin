@@ -5,6 +5,8 @@ export interface Employee {
   fullName: string;
   position: string;
   active: boolean;
+  baseSalary: number;
+  salaryPeriod: "DIA" | "MENSUAL";
   shiftId: string;
   shift?: Shift;
   createdAt: Date;
@@ -47,5 +49,38 @@ export interface EmployeeSetting {
   settingId: string;
   employeeId: string;
   employee?: Employee;
+  setting?: Setting;
+  createdAt: Date;
+}
+
+export interface Deduction {
+  id: string;
+  employeeId: string;
+  employee?: Employee;
+  amount: number;
+  date: Date;
+  concept: string;
+  createdAt: Date;
+}
+
+export interface AdditionalPayment {
+  id: string;
+  employeeId: string;
+  employee?: Employee;
+  amount: number;
+  date: Date;
+  concept: string;
+  createdAt: Date;
+}
+
+export interface PayrollLiquidation {
+  id: string;
+  period: string;
+  startDate: Date;
+  endDate: Date;
+  employeeId: string;
+  employee?: Employee;
+  deductions: number;
+  amount: number;
   createdAt: Date;
 }

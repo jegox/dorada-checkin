@@ -14,9 +14,14 @@ import {
   ToggleLeft,
   ToggleRight,
   KeyRound,
+  MinusCircle,
+  PlusCircle,
+  Trash2,
 } from "lucide-react";
 import { useEmpleados } from "@/presentation/hooks/useEmpleados";
 import { useConfiguraciones } from "@/presentation/hooks/useConfiguraciones";
+import { useDeductions } from "@/presentation/hooks/useDeductions";
+import { useAdditionalPayments } from "@/presentation/hooks/useAdditionalPayments";
 import { ConfirmDialog } from "@/presentation/components/ui/ConfirmDialog";
 import { ResultDialog } from "@/presentation/components/ui/ResultDialog";
 import type { EmployeeDTO, SettingDTO } from "@/presentation/types";
@@ -151,7 +156,9 @@ function SettingItem({
 
 // ─── Vista principal ──────────────────────────────────────────────────────────
 export function EmpleadosView() {
-  const [activeTab, setActiveTab] = useState<"empleados" | "configuraciones">("empleados");
+  const [activeTab, setActiveTab] = useState<
+    "empleados" | "configuraciones" | "deducciones" | "pagos"
+  >("empleados");
 
   const {
     employees,
@@ -191,6 +198,16 @@ export function EmpleadosView() {
     handleToggleActive: handleToggleSetting,
     clearSaveResult: clearSettingResult,
   } = useConfiguraciones();
+
+  const deductionHook = useDeductions(employees);
+  const addPaymentHook = useAdditionalPayments(employees);
+
+  const fmt = (n: number) =>
+    new Intl.NumberFormat("es-CO", {
+      style: "currency",
+      currency: "COP",
+      maximumFractionDigits: 0,
+    }).format(n);
 
   // ConfirmDialog para toggle de empleado
   const [pendingToggle, setPendingToggle] = useState<EmployeeDTO | null>(null);
@@ -242,7 +259,7 @@ export function EmpleadosView() {
         )}
 
         {/* Tabs */}
-        <div className='flex gap-1 border-b border-default-200'>
+        <div className='flex gap-1 border-b border-default-200 flex-wrap'>
           <Tab
             label='Lista de Empleados'
             active={activeTab === "empleados"}
@@ -252,6 +269,16 @@ export function EmpleadosView() {
             label='Configuraciones'
             active={activeTab === "configuraciones"}
             onClick={() => setActiveTab("configuraciones")}
+          />
+          <Tab
+            label='Deducciones'
+            active={activeTab === "deducciones"}
+            onClick={() => setActiveTab("deducciones")}
+          />
+          <Tab
+            label='Pagos Adicionales'
+            active={activeTab === "pagos"}
+            onClick={() => setActiveTab("pagos")}
           />
         </div>
 
@@ -480,6 +507,274 @@ export function EmpleadosView() {
                 )}
               </CardContent>
             </Card>
+          </>
+        )}
+
+        {/* ── Tab: Deducciones ── */}
+        {activeTab === "deducciones" && (
+          <>
+            <Card>
+              <CardHeader>
+                <span className='font-semibold flex items-center gap-2'>
+                  <MinusCircle className='w-4 h-4 text-danger' /> Nueva Deducción
+                </span>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={deductionHook.handleCreate} className='grid grid-cols-2 gap-4'>
+                  <div className='flex flex-col gap-1'>
+                    <label className='text-sm font-medium text-default-700'>Empleado</label>
+                    <select
+                      className='h-10 px-3 rounded-lg border border-default-300 bg-default-100 text-sm focus:outline-none focus:border-primary'
+                      value={deductionHook.form.employeeId}
+                      onChange={(e) => deductionHook.setField("employeeId", e.target.value)}
+                    >
+                      <option value=''>Seleccionar empleado</option>
+                      {employees.map((emp) => (
+                        <option key={emp.id} value={emp.id}>
+                          {emp.fullName}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className='flex flex-col gap-1'>
+                    <label className='text-sm font-medium text-default-700'>Amount (COP)</label>
+                    <input
+                      type='number'
+                      min='0'
+                      step='1000'
+                      className='h-10 px-3 rounded-lg border border-default-300 bg-default-100 text-sm focus:outline-none focus:border-primary'
+                      placeholder='Ej: 30000'
+                      value={deductionHook.form.amount}
+                      onChange={(e) => deductionHook.setField("amount", e.target.value)}
+                    />
+                  </div>
+                  <div className='flex flex-col gap-1'>
+                    <label className='text-sm font-medium text-default-700'>Date</label>
+                    <input
+                      type='date'
+                      className='h-10 px-3 rounded-lg border border-default-300 bg-default-100 text-sm focus:outline-none focus:border-primary'
+                      value={deductionHook.form.date}
+                      onChange={(e) => deductionHook.setField("date", e.target.value)}
+                    />
+                  </div>
+                  <div className='flex flex-col gap-1'>
+                    <label className='text-sm font-medium text-default-700'>Concept</label>
+                    <input
+                      className='h-10 px-3 rounded-lg border border-default-300 bg-default-100 text-sm focus:outline-none focus:border-primary'
+                      placeholder='Ej: Préstamo'
+                      value={deductionHook.form.concept}
+                      onChange={(e) => deductionHook.setField("concept", e.target.value)}
+                    />
+                  </div>
+                  <div className='col-span-2 flex justify-end'>
+                    <Button type='submit' variant='primary' isDisabled={deductionHook.saving}>
+                      {deductionHook.saving ? <Spinner size='sm' /> : "Registrar Deducción"}
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className='py-2'>
+                {deductionHook.loading ? (
+                  <div className='flex justify-center py-8'>
+                    <Spinner />
+                  </div>
+                ) : (
+                  <table className='w-full text-sm'>
+                    <thead>
+                      <tr className='border-b bg-default-50 text-default-500 text-xs uppercase'>
+                        <th className='text-left px-4 py-2'>Employee</th>
+                        <th className='text-left px-4 py-2'>Amount</th>
+                        <th className='text-left px-4 py-2'>Date</th>
+                        <th className='text-left px-4 py-2'>Concept</th>
+                        <th className='px-4 py-2'></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {deductionHook.deductions.length === 0 ? (
+                        <tr>
+                          <td colSpan={5} className='text-center py-8 text-default-400'>
+                            Sin deducciones registradas
+                          </td>
+                        </tr>
+                      ) : (
+                        deductionHook.deductions.map((d) => (
+                          <tr key={d.id} className='border-b hover:bg-default-50'>
+                            <td className='px-4 py-2 font-medium'>
+                              {d.employee?.fullName ?? d.employeeId}
+                            </td>
+                            <td className='px-4 py-2 text-danger font-semibold'>{fmt(d.amount)}</td>
+                            <td className='px-4 py-2'>
+                              {new Date(d.date).toLocaleDateString("es-CO")}
+                            </td>
+                            <td className='px-4 py-2'>{d.concept}</td>
+                            <td className='px-4 py-2'>
+                              <Button
+                                isIconOnly
+                                size='sm'
+                                variant='ghost'
+                                onPress={() => deductionHook.setPendingDelete(d.id)}
+                              >
+                                <Trash2 className='w-4 h-4 text-danger' />
+                              </Button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                )}
+              </CardContent>
+            </Card>
+            <ConfirmDialog
+              open={deductionHook.pendingDelete !== null}
+              title='Eliminar deducción'
+              description='¿Eliminar este registro de deducción? La acción no se puede deshacer.'
+              confirmLabel='Eliminar'
+              variant='danger'
+              onConfirm={deductionHook.confirmDelete}
+              onCancel={() => deductionHook.setPendingDelete(null)}
+            />
+            <ResultDialog
+              result={deductionHook.saveResult}
+              onClose={deductionHook.clearSaveResult}
+            />
+          </>
+        )}
+
+        {/* ── Tab: Pagos Adicionales ── */}
+        {activeTab === "pagos" && (
+          <>
+            <Card>
+              <CardHeader>
+                <span className='font-semibold flex items-center gap-2'>
+                  <PlusCircle className='w-4 h-4 text-success' /> Nuevo Pago Adicional
+                </span>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={addPaymentHook.handleCreate} className='grid grid-cols-2 gap-4'>
+                  <div className='flex flex-col gap-1'>
+                    <label className='text-sm font-medium text-default-700'>Empleado</label>
+                    <select
+                      className='h-10 px-3 rounded-lg border border-default-300 bg-default-100 text-sm focus:outline-none focus:border-primary'
+                      value={addPaymentHook.form.employeeId}
+                      onChange={(e) => addPaymentHook.setField("employeeId", e.target.value)}
+                    >
+                      <option value=''>Seleccionar empleado</option>
+                      {employees.map((emp) => (
+                        <option key={emp.id} value={emp.id}>
+                          {emp.fullName}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className='flex flex-col gap-1'>
+                    <label className='text-sm font-medium text-default-700'>Amount (COP)</label>
+                    <input
+                      type='number'
+                      min='0'
+                      step='1000'
+                      className='h-10 px-3 rounded-lg border border-default-300 bg-default-100 text-sm focus:outline-none focus:border-primary'
+                      placeholder='Ej: 50000'
+                      value={addPaymentHook.form.amount}
+                      onChange={(e) => addPaymentHook.setField("amount", e.target.value)}
+                    />
+                  </div>
+                  <div className='flex flex-col gap-1'>
+                    <label className='text-sm font-medium text-default-700'>Date</label>
+                    <input
+                      type='date'
+                      className='h-10 px-3 rounded-lg border border-default-300 bg-default-100 text-sm focus:outline-none focus:border-primary'
+                      value={addPaymentHook.form.date}
+                      onChange={(e) => addPaymentHook.setField("date", e.target.value)}
+                    />
+                  </div>
+                  <div className='flex flex-col gap-1'>
+                    <label className='text-sm font-medium text-default-700'>Concept</label>
+                    <input
+                      className='h-10 px-3 rounded-lg border border-default-300 bg-default-100 text-sm focus:outline-none focus:border-primary'
+                      placeholder='Ej: Bono transporte'
+                      value={addPaymentHook.form.concept}
+                      onChange={(e) => addPaymentHook.setField("concept", e.target.value)}
+                    />
+                  </div>
+                  <div className='col-span-2 flex justify-end'>
+                    <Button type='submit' variant='primary' isDisabled={addPaymentHook.saving}>
+                      {addPaymentHook.saving ? <Spinner size='sm' /> : "Registrar Pago"}
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className='py-2'>
+                {addPaymentHook.loading ? (
+                  <div className='flex justify-center py-8'>
+                    <Spinner />
+                  </div>
+                ) : (
+                  <table className='w-full text-sm'>
+                    <thead>
+                      <tr className='border-b bg-default-50 text-default-500 text-xs uppercase'>
+                        <th className='text-left px-4 py-2'>Employee</th>
+                        <th className='text-left px-4 py-2'>Amount</th>
+                        <th className='text-left px-4 py-2'>Date</th>
+                        <th className='text-left px-4 py-2'>Concept</th>
+                        <th className='px-4 py-2'></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {addPaymentHook.payments.length === 0 ? (
+                        <tr>
+                          <td colSpan={5} className='text-center py-8 text-default-400'>
+                            Sin pagos adicionales registrados
+                          </td>
+                        </tr>
+                      ) : (
+                        addPaymentHook.payments.map((p) => (
+                          <tr key={p.id} className='border-b hover:bg-default-50'>
+                            <td className='px-4 py-2 font-medium'>
+                              {p.employee?.fullName ?? p.employeeId}
+                            </td>
+                            <td className='px-4 py-2 text-success font-semibold'>
+                              {fmt(p.amount)}
+                            </td>
+                            <td className='px-4 py-2'>
+                              {new Date(p.date).toLocaleDateString("es-CO")}
+                            </td>
+                            <td className='px-4 py-2'>{p.concept}</td>
+                            <td className='px-4 py-2'>
+                              <Button
+                                isIconOnly
+                                size='sm'
+                                variant='ghost'
+                                onPress={() => addPaymentHook.setPendingDelete(p.id)}
+                              >
+                                <Trash2 className='w-4 h-4 text-danger' />
+                              </Button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                )}
+              </CardContent>
+            </Card>
+            <ConfirmDialog
+              open={addPaymentHook.pendingDelete !== null}
+              title='Eliminar pago adicional'
+              description='¿Eliminar este registro de pago adicional? La acción no se puede deshacer.'
+              confirmLabel='Eliminar'
+              variant='danger'
+              onConfirm={addPaymentHook.confirmDelete}
+              onCancel={() => addPaymentHook.setPendingDelete(null)}
+            />
+            <ResultDialog
+              result={addPaymentHook.saveResult}
+              onClose={addPaymentHook.clearSaveResult}
+            />
           </>
         )}
       </div>

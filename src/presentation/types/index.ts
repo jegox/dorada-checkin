@@ -12,6 +12,8 @@ export interface EmployeeDTO {
   fullName: string;
   position: string;
   active: boolean;
+  baseSalary: number;
+  salaryPeriod: "DIA" | "MENSUAL";
   shiftId: string;
   shift: ShiftDTO;
 }
@@ -57,5 +59,37 @@ export interface SettingDTO {
   value: string;
   active: boolean;
   employees: SettingEmployeeDTO[];
+  createdAt: string;
+}
+
+export interface DeductionDTO {
+  id: string;
+  employeeId: string;
+  employee: EmployeeDTO;
+  amount: number;
+  date: string;
+  concept: string;
+  createdAt: string;
+}
+
+export interface AdditionalPaymentDTO {
+  id: string;
+  employeeId: string;
+  employee: EmployeeDTO;
+  amount: number;
+  date: string;
+  concept: string;
+  createdAt: string;
+}
+
+export interface PayrollLiquidationDTO {
+  id: string;
+  period: string;
+  startDate: string;
+  endDate: string;
+  employeeId: string;
+  employee: EmployeeDTO;
+  deductions: number;
+  amount: number;
   createdAt: string;
 }

@@ -17,18 +17,23 @@ model Shift {
 }
 
 model Employee {
-  id          String            @id @default(cuid())
-  document    String            @unique
-  fullName    String
-  position    String
-  active      Boolean           @default(true)
-  deviceCode  String?           @unique
-  shiftId     String
-  shift       Shift             @relation(fields: [shiftId], references: [id])
-  attendances Attendance[]
-  settings    EmployeeSetting[]
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
+  id                  String               @id @default(cuid())
+  document            String               @unique
+  fullName            String
+  position            String
+  active              Boolean              @default(true)
+  baseSalary          Decimal              @default(0) @db.Decimal(12, 2)
+  salaryPeriod        String               @default("MENSUAL")
+  deviceCode          String?              @unique
+  shiftId             String
+  shift               Shift                @relation(fields: [shiftId], references: [id])
+  attendances         Attendance[]
+  settings            EmployeeSetting[]
+  deductions          Deduction[]
+  additionalPayments  AdditionalPayment[]
+  payrollLiquidations PayrollLiquidation[]
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
 }
 
 model Attendance {
@@ -70,4 +75,36 @@ model EmployeeSetting {
   createdAt  DateTime @default(now())
 
   @@unique([settingId, employeeId])
+}
+
+model Deduction {
+  id         String   @id @default(cuid())
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  amount     Decimal  @db.Decimal(12, 2)
+  date       DateTime
+  concept    String
+  createdAt  DateTime @default(now())
+}
+
+model AdditionalPayment {
+  id         String   @id @default(cuid())
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  amount     Decimal  @db.Decimal(12, 2)
+  date       DateTime
+  concept    String
+  createdAt  DateTime @default(now())
+}
+
+model PayrollLiquidation {
+  id         String   @id @default(cuid())
+  period     String
+  startDate  DateTime
+  endDate    DateTime
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  deductions Decimal  @default(0) @db.Decimal(12, 2)
+  amount     Decimal  @default(0) @db.Decimal(12, 2)
+  createdAt  DateTime @default(now())
 }

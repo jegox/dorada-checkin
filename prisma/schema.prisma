@@ -22,8 +22,6 @@ model Employee {
   fullName            String
   position            String
   active              Boolean              @default(true)
-  baseSalary          Decimal              @default(0) @db.Decimal(12, 2)
-  salaryPeriod        String               @default("MENSUAL")
   deviceCode          String?              @unique
   shiftId             String
   shift               Shift                @relation(fields: [shiftId], references: [id])

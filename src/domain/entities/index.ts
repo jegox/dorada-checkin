@@ -5,8 +5,6 @@ export interface Employee {
   fullName: string;
   position: string;
   active: boolean;
-  baseSalary: number;
-  salaryPeriod: "DIA" | "MENSUAL";
   shiftId: string;
   shift?: Shift;
   createdAt: Date;

@@ -91,3 +91,63 @@ export interface PayrollLiquidationDTO {
   amount: number;
   createdAt: string;
 }
+
+export interface AttendancePeriodFilterOptionDTO {
+  id: string;
+  name: string;
+  document?: string;
+  shiftId?: string;
+}
+
+export interface AttendancePeriodRowDTO {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  employeeDocument: string;
+  shiftId: string;
+  shiftName: string;
+  date: string;
+  checkInTime: string;
+  checkOutTime: string | null;
+  novelty: "ENTRADA TARDE" | "ENTRADA A TIEMPO";
+}
+
+export interface AttendancePeriodReportDTO {
+  period: {
+    label: string;
+    startDate: string;
+    endDate: string;
+  };
+  filters: {
+    employees: AttendancePeriodFilterOptionDTO[];
+    shifts: AttendancePeriodFilterOptionDTO[];
+  };
+  summary: {
+    totalCompletedShiftsAmount: number;
+    totalLateArrivals: number;
+    punctualityPercent: number;
+    pendingCheckOuts: number;
+  };
+  rows: AttendancePeriodRowDTO[];
+}
+
+export interface PayrollLiquidatedEmployeeRowDTO {
+  employeeId: string;
+  employeeName: string;
+  employeeDocument: string;
+  totalAmount: number;
+  totalDeductions: number;
+  lateArrivals: number;
+  punctualityPercent: number;
+}
+
+export interface PayrollLiquidatedReportDTO {
+  selectedPeriod: string | null;
+  availablePeriods: string[];
+  summary: {
+    totalAmount: number;
+    totalDeductions: number;
+    netAmount: number;
+  };
+  rows: PayrollLiquidatedEmployeeRowDTO[];
+}

@@ -1,65 +1,84 @@
 "use client";
 import { Card, CardContent, CardHeader, Button, Spinner } from "@heroui/react";
-import { BarChart3, TrendingUp, LogIn, LogOut, Clock, AlertCircle } from "lucide-react";
-import { useReportes, REPORT_RANGES } from "@/presentation/hooks/useReportes";
-import type { ReportTotalsDTO, AttendanceDTO } from "@/presentation/types";
+import { AlertCircle, CalendarRange, CircleDollarSign, Clock3, Users } from "lucide-react";
+import { useReportes } from "@/presentation/hooks/useReportes";
 
-function fmtDate(iso: string) {
-  const [, m, d] = iso.split("-");
-  return `${d}/${m}`;
+function formatMoney(value: number): string {
+  return new Intl.NumberFormat("es-CO", {
+    style: "currency",
+    currency: "COP",
+    maximumFractionDigits: 0,
+  }).format(value);
 }
-function fmtTime(iso: string) {
-  return new Date(iso).toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" });
+
+function formatDate(iso: string): string {
+  return new Date(`${iso}T12:00:00`).toLocaleDateString("es-CO");
 }
 
-const STATUS_LABEL: Record<AttendanceDTO["status"], string> = {
-  ON_TIME: "A tiempo",
-  LATE: "Tarde",
-  EARLY: "Temprano",
-};
-
-const KPI: Array<{
-  key: keyof ReportTotalsDTO | "puntualidad";
+function StatCard({
+  label,
+  value,
+  icon: Icon,
+}: {
   label: string;
+  value: string;
   icon: React.ElementType;
-  cls: string;
-  bg: string;
-}> = [
-  { key: "checkIns", label: "Entradas", icon: LogIn, cls: "text-green-600", bg: "bg-green-50" },
-  { key: "checkOuts", label: "Salidas", icon: LogOut, cls: "text-blue-500", bg: "bg-blue-50" },
-  { key: "late", label: "Tardanzas", icon: Clock, cls: "text-amber-500", bg: "bg-amber-50" },
-  {
-    key: "puntualidad",
-    label: "Puntualidad",
-    icon: TrendingUp,
-    cls: "text-purple-500",
-    bg: "bg-purple-50",
-  },
-];
+}) {
+  return (
+    <Card>
+      <CardContent className='py-4'>
+        <div className='flex items-center gap-3'>
+          <div className='p-2 rounded-lg bg-default-100'>
+            <Icon className='w-4 h-4 text-default-700' />
+          </div>
+          <div>
+            <p className='text-xs text-default-500'>{label}</p>
+            <p className='text-lg font-semibold'>{value}</p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 export function ReportesView() {
-  const { days, totals, records, loading, error, rangeIdx, puntualidad, maxCheckIns, setRangeIdx } =
-    useReportes();
-  const vals: Record<string, string | number> = { ...totals, puntualidad: `${puntualidad}%` };
+  const {
+    activeTab,
+    loading,
+    error,
+    attendance,
+    payroll,
+    selectedEmployeeId,
+    selectedShiftId,
+    selectedPeriod,
+    setActiveTab,
+    setSelectedEmployeeId,
+    setSelectedShiftId,
+    setSelectedPeriod,
+  } = useReportes();
 
   return (
     <div className='space-y-6'>
       <div className='flex items-center justify-between'>
         <div>
-          <h2 className='text-xl font-bold'>Reportes</h2>
-          <p className='text-sm text-default-500'>Análisis de asistencia</p>
+          <h2 className='text-xl font-bold'>Reporteria</h2>
+          <p className='text-sm text-default-500'>Reportes quincenales operativos y de nomina</p>
         </div>
         <div className='flex gap-2'>
-          {REPORT_RANGES.map((r, i) => (
-            <Button
-              key={r.label}
-              size='sm'
-              variant={rangeIdx === i ? "primary" : "outline"}
-              onPress={() => setRangeIdx(i)}
-            >
-              {r.label}
-            </Button>
-          ))}
+          <Button
+            size='sm'
+            variant={activeTab === "empleados" ? "primary" : "outline"}
+            onPress={() => setActiveTab("empleados")}
+          >
+            Reporte de empleados
+          </Button>
+          <Button
+            size='sm'
+            variant={activeTab === "nomina" ? "primary" : "outline"}
+            onPress={() => setActiveTab("nomina")}
+          >
+            Reporte de nomina liquidada
+          </Button>
         </div>
       </div>
 
@@ -70,112 +89,189 @@ export function ReportesView() {
         </div>
       )}
 
-      {loading ? (
+      {loading && !attendance && !payroll ? (
         <div className='flex justify-center py-20'>
           <Spinner size='lg' />
         </div>
       ) : (
         <>
-          <div className='grid grid-cols-4 gap-4'>
-            {KPI.map(({ key, label, icon: Icon, cls, bg }) => (
-              <Card key={key}>
-                <CardContent className='flex items-center gap-4 py-4'>
-                  <div className={`p-3 rounded-xl ${bg}`}>
-                    <Icon className={`w-5 h-5 ${cls}`} />
-                  </div>
-                  <div>
-                    <p className='text-2xl font-bold'>{vals[key]}</p>
-                    <p className='text-xs text-default-500'>{label}</p>
+          {activeTab === "empleados" && attendance && (
+            <>
+              <Card>
+                <CardHeader className='font-semibold'>
+                  Periodo en curso: {attendance.period.label}
+                </CardHeader>
+                <CardContent>
+                  <div className='grid grid-cols-1 md:grid-cols-2 gap-3'>
+                    <label className='text-sm'>
+                      <span className='text-default-500 block mb-1'>Filtrar por turno</span>
+                      <select
+                        className='w-full h-10 rounded-md border border-default-200 bg-background px-3 text-sm'
+                        value={selectedShiftId}
+                        onChange={(e) => setSelectedShiftId(e.target.value)}
+                      >
+                        <option value=''>Todos</option>
+                        {attendance.filters.shifts.map((shift) => (
+                          <option key={shift.id} value={shift.id}>
+                            {shift.name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className='text-sm'>
+                      <span className='text-default-500 block mb-1'>Filtrar por empleado</span>
+                      <select
+                        className='w-full h-10 rounded-md border border-default-200 bg-background px-3 text-sm'
+                        value={selectedEmployeeId}
+                        onChange={(e) => setSelectedEmployeeId(e.target.value)}
+                      >
+                        <option value=''>Todos</option>
+                        {attendance.filters.employees.map((employee) => (
+                          <option key={employee.id} value={employee.id}>
+                            {employee.name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
                   </div>
                 </CardContent>
               </Card>
-            ))}
-          </div>
 
-          {days.length > 0 && (
-            <Card>
-              <CardHeader>
-                <span className='font-semibold flex items-center gap-2'>
-                  <BarChart3 className='w-4 h-4' /> Entradas por día
-                </span>
-              </CardHeader>
-              <CardContent>
-                <div className='flex items-end gap-2 h-32'>
-                  {days.map((d) => (
-                    <div key={d.date} className='flex-1 flex flex-col items-center gap-1'>
-                      <span className='text-xs text-default-400'>{d.checkIns}</span>
-                      <div
-                        className='w-full bg-blue-400 rounded-t-sm'
-                        style={{
-                          height: `${Math.round((d.checkIns / maxCheckIns) * 96)}px`,
-                          minHeight: d.checkIns > 0 ? "4px" : "0",
-                        }}
-                      />
-                      <span className='text-xs text-default-400 truncate w-full text-center'>
-                        {fmtDate(d.date)}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+              <div className='grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4'>
+                <StatCard
+                  label='Monto total turnos terminados'
+                  value={formatMoney(attendance.summary.totalCompletedShiftsAmount)}
+                  icon={CircleDollarSign}
+                />
+                <StatCard
+                  label='Llegadas tarde acumuladas'
+                  value={`${attendance.summary.totalLateArrivals}`}
+                  icon={Clock3}
+                />
+                <StatCard
+                  label='Puntualidad acumulada'
+                  value={`${attendance.summary.punctualityPercent}%`}
+                  icon={CalendarRange}
+                />
+                <StatCard
+                  label='Salidas pendientes'
+                  value={`${attendance.summary.pendingCheckOuts}`}
+                  icon={Users}
+                />
+              </div>
+
+              <Card>
+                <CardHeader className='font-semibold'>Detalle de empleados del periodo</CardHeader>
+                <CardContent>
+                  <div className='overflow-auto'>
+                    <table className='w-full text-sm'>
+                      <thead>
+                        <tr className='border-b border-default-200'>
+                          <th className='text-left py-2 px-3'>Empleado</th>
+                          <th className='text-left py-2 px-3'>Fecha</th>
+                          <th className='text-left py-2 px-3'>Hora entrada</th>
+                          <th className='text-left py-2 px-3'>Hora salida</th>
+                          <th className='text-left py-2 px-3'>Turno</th>
+                          <th className='text-left py-2 px-3'>Novedad</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {attendance.rows.map((row) => (
+                          <tr key={row.id} className='border-b border-default-100'>
+                            <td className='py-2 px-3'>
+                              <p className='font-medium'>{row.employeeName}</p>
+                              <p className='text-xs text-default-400'>{row.employeeDocument}</p>
+                            </td>
+                            <td className='py-2 px-3'>{formatDate(row.date)}</td>
+                            <td className='py-2 px-3'>{row.checkInTime}</td>
+                            <td className='py-2 px-3'>{row.checkOutTime ?? "Pendiente"}</td>
+                            <td className='py-2 px-3'>{row.shiftName}</td>
+                            <td className='py-2 px-3'>{row.novelty}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </CardContent>
+              </Card>
+            </>
           )}
 
-          <Card>
-            <CardHeader>
-              <span className='font-semibold'>Detalle de marcaciones</span>
-            </CardHeader>
-            <CardContent>
-              {records.length === 0 ? (
-                <div className='flex flex-col items-center py-12 gap-3 text-default-400'>
-                  <BarChart3 className='w-10 h-10' />
-                  <p>Sin registros en el período</p>
-                </div>
-              ) : (
-                <div className='overflow-auto max-h-80'>
-                  <table className='w-full text-sm'>
-                    <thead>
-                      <tr className='border-b border-default-200'>
-                        {["Empleado", "Turno", "Tipo", "Estado", "Hora"].map((h) => (
-                          <th key={h} className='text-left py-2 px-3 text-default-500 font-medium'>
-                            {h}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {records.map((r) => (
-                        <tr key={r.id} className='border-b border-default-100 hover:bg-default-50'>
-                          <td className='py-2 px-3'>
-                            <p className='font-medium'>{r.employee.fullName}</p>
-                            <p className='text-xs text-default-400'>{r.employee.document}</p>
-                          </td>
-                          <td className='py-2 px-3 text-default-500'>
-                            {r.employee.shift?.name ?? "—"}
-                          </td>
-                          <td className='py-2 px-3'>
-                            <span
-                              className={`text-xs px-2 py-1 rounded-full font-medium ${r.type === "CHECK_IN" ? "bg-green-100 text-green-700" : "bg-blue-100 text-blue-700"}`}
-                            >
-                              {r.type === "CHECK_IN" ? "Entrada" : "Salida"}
-                            </span>
-                          </td>
-                          <td className='py-2 px-3'>
-                            <span
-                              className={`text-xs px-2 py-1 rounded-full font-medium ${r.status === "LATE" ? "bg-amber-100 text-amber-700" : "bg-green-100 text-green-700"}`}
-                            >
-                              {STATUS_LABEL[r.status]}
-                            </span>
-                          </td>
-                          <td className='py-2 px-3 text-default-500'>{fmtTime(r.createdAt)}</td>
-                        </tr>
+          {activeTab === "nomina" && payroll && (
+            <>
+              <Card>
+                <CardHeader className='font-semibold'>Filtrar periodo liquidado</CardHeader>
+                <CardContent>
+                  <label className='text-sm block'>
+                    <span className='text-default-500 block mb-1'>Periodo</span>
+                    <select
+                      className='w-full h-10 rounded-md border border-default-200 bg-background px-3 text-sm'
+                      value={selectedPeriod}
+                      onChange={(e) => setSelectedPeriod(e.target.value)}
+                    >
+                      <option value=''>Selecciona un periodo</option>
+                      {payroll.availablePeriods.map((period) => (
+                        <option key={period} value={period}>
+                          {period}
+                        </option>
                       ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                    </select>
+                  </label>
+                </CardContent>
+              </Card>
+
+              <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+                <StatCard
+                  label='Monto total del periodo'
+                  value={formatMoney(payroll.summary.totalAmount)}
+                  icon={CircleDollarSign}
+                />
+                <StatCard
+                  label='Total deducciones'
+                  value={formatMoney(payroll.summary.totalDeductions)}
+                  icon={Clock3}
+                />
+                <StatCard
+                  label='Neto del periodo'
+                  value={formatMoney(payroll.summary.netAmount)}
+                  icon={CalendarRange}
+                />
+              </div>
+
+              <Card>
+                <CardHeader className='font-semibold'>Detalle de nomina liquidada</CardHeader>
+                <CardContent>
+                  <div className='overflow-auto'>
+                    <table className='w-full text-sm'>
+                      <thead>
+                        <tr className='border-b border-default-200'>
+                          <th className='text-left py-2 px-3'>Empleado</th>
+                          <th className='text-left py-2 px-3'>Monto total del periodo</th>
+                          <th className='text-left py-2 px-3'>Deducciones total del periodo</th>
+                          <th className='text-left py-2 px-3'>Llegadas tarde y puntualidad</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {payroll.rows.map((row) => (
+                          <tr key={row.employeeId} className='border-b border-default-100'>
+                            <td className='py-2 px-3'>
+                              <p className='font-medium'>{row.employeeName}</p>
+                              <p className='text-xs text-default-400'>{row.employeeDocument}</p>
+                            </td>
+                            <td className='py-2 px-3'>{formatMoney(row.totalAmount)}</td>
+                            <td className='py-2 px-3'>{formatMoney(row.totalDeductions)}</td>
+                            <td className='py-2 px-3'>
+                              {row.lateArrivals} tardanzas - {row.punctualityPercent}% puntualidad
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </CardContent>
+              </Card>
+            </>
+          )}
         </>
       )}
     </div>

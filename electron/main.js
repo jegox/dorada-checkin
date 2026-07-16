@@ -32,7 +32,7 @@ const loadFallbackErrorPage = (win, message) => {
   win.loadURL(
     "data:text/html," +
       encodeURIComponent(
-        `<html><body style="font-family:Arial;padding:24px"><h2>Dorada Check</h2><p>${message}</p><p>Configura la URL desde Configuración para guardarla en storage local (<b>${storagePath}</b>).</p></body></html>`,
+        `<html><head><meta charset="utf-8" /></head><body style="font-family:Arial;padding:24px"><h2>Dorada Check</h2><p>${message}</p><p>Configura la URL desde Configuración para guardarla en storage local cifrado (<b>${storagePath}</b>).</p></body></html>`,
       ),
   );
 };
@@ -136,17 +136,17 @@ const createWindow = async () => {
   if (app.isPackaged || isPreview) {
     const envSource = await loadRuntimeDatabaseUrl();
 
-    if (!envSource) {
-      loadFallbackErrorPage(win, "No se encontró DATABASE_URL para conectarse a la base de datos.");
-      return win;
-    }
-
     const isReady = await startNextProductionServer(3000);
     if (!isReady) {
       loadFallbackErrorPage(win, "No se pudo iniciar el servidor interno de la aplicación.");
       return win;
     }
-    win.loadURL("http://127.0.0.1:3000");
+
+    // Si falta la URL, abrimos Configuración para que el usuario la guarde sin bloquear toda la app.
+    const targetUrl = envSource
+      ? "http://127.0.0.1:3000"
+      : "http://127.0.0.1:3000/configuracion?setup=database";
+    win.loadURL(targetUrl);
   } else {
     // Desarrollo: apunta al servidor de Next.js
     await waitForNextServer();

@@ -1,22 +1,41 @@
 import http from "http";
 import path from "path";
-import { app, BrowserWindow, Menu, protocol } from "electron";
+import { app, BrowserWindow, Menu } from "electron";
 import { registerIpcHandlers } from "./ipc/handlers.js";
-
-// Registrar el esquema app:// como privilegiado ANTES de que la app esté lista
-protocol.registerSchemesAsPrivileged([
-  {
-    scheme: "app",
-    privileges: {
-      standard: true,
-      secure: true,
-      supportFetchAccessControlHeaders: true,
-      stream: true,
-    },
-  },
-]);
+import {
+  getDatabaseStorageFilePath,
+  readDatabaseUrlFromStorage,
+} from "./runtime/database-credentials.js";
 
 const isPreview = process.argv.includes("--preview");
+let nextHttpServer = null;
+
+const loadRuntimeDatabaseUrl = async () => {
+  if (process.env.DATABASE_URL) return "runtime";
+
+  try {
+    const userDataPath = app.getPath("userData");
+    const value = await readDatabaseUrlFromStorage(userDataPath);
+    if (!value) return null;
+
+    process.env.DATABASE_URL = value;
+    console.log("[runtime-env] DATABASE_URL cargada desde storage local");
+    return "local-storage";
+  } catch (error) {
+    console.error("[runtime-env] Error leyendo storage local:", error);
+    return null;
+  }
+};
+
+const loadFallbackErrorPage = (win, message) => {
+  const storagePath = getDatabaseStorageFilePath(app.getPath("userData"));
+  win.loadURL(
+    "data:text/html," +
+      encodeURIComponent(
+        `<html><body style="font-family:Arial;padding:24px"><h2>Dorada Check</h2><p>${message}</p><p>Configura la URL desde Configuración para guardarla en storage local (<b>${storagePath}</b>).</p></body></html>`,
+      ),
+  );
+};
 
 // Espera a que el servidor de Next.js esté listo (solo en dev)
 const waitForNextServer = (port = 3000, timeout = 60000) => {
@@ -42,6 +61,50 @@ const waitForNextServer = (port = 3000, timeout = 60000) => {
   });
 };
 
+const startNextProductionServer = async (port = 3000) => {
+  if (nextHttpServer?.listening) return true;
+
+  try {
+    const appRoot = app.getAppPath();
+    const nextModule = await import("next");
+    const next = nextModule.default;
+
+    const nextApp = next({
+      dev: false,
+      dir: appRoot,
+      hostname: "127.0.0.1",
+      port,
+    });
+    const handle = nextApp.getRequestHandler();
+
+    await nextApp.prepare();
+
+    nextHttpServer = http.createServer((req, res) => {
+      handle(req, res);
+    });
+
+    await new Promise((resolve, reject) => {
+      const onError = (err) => {
+        nextHttpServer.off("listening", onListening);
+        reject(err);
+      };
+      const onListening = () => {
+        nextHttpServer.off("error", onError);
+        resolve(true);
+      };
+
+      nextHttpServer.once("error", onError);
+      nextHttpServer.once("listening", onListening);
+      nextHttpServer.listen(port, "127.0.0.1");
+    });
+
+    return true;
+  } catch (error) {
+    console.error("[next-start] No se pudo iniciar Next en modo empaquetado:", error);
+    return false;
+  }
+};
+
 const createWindow = async () => {
   const win = new BrowserWindow({
     width: 1280,
@@ -58,9 +121,32 @@ const createWindow = async () => {
 
   win.setMenuBarVisibility(false);
 
+  win.webContents.on("did-fail-load", (_event, code, description, url, isMainFrame) => {
+    if (!isMainFrame) return;
+    console.error(`[renderer-load] code=${code} url=${url} description=${description}`);
+    if (app.isPackaged || isPreview) {
+      loadFallbackErrorPage(win, "No se pudo cargar la interfaz de la aplicación.");
+    }
+  });
+
+  win.webContents.on("render-process-gone", (_event, details) => {
+    console.error("[renderer-crash]", details);
+  });
+
   if (app.isPackaged || isPreview) {
-    // Producción: sirve los archivos estáticos de Next.js desde /out
-    win.loadURL("app://app/index.html");
+    const envSource = await loadRuntimeDatabaseUrl();
+
+    if (!envSource) {
+      loadFallbackErrorPage(win, "No se encontró DATABASE_URL para conectarse a la base de datos.");
+      return win;
+    }
+
+    const isReady = await startNextProductionServer(3000);
+    if (!isReady) {
+      loadFallbackErrorPage(win, "No se pudo iniciar el servidor interno de la aplicación.");
+      return win;
+    }
+    win.loadURL("http://127.0.0.1:3000");
   } else {
     // Desarrollo: apunta al servidor de Next.js
     await waitForNextServer();
@@ -81,37 +167,6 @@ app.on("ready", () => {
   Menu.setApplicationMenu(null);
   registerIpcHandlers();
 
-  // Protocolo app:// para servir archivos estáticos de Next.js en producción
-  protocol.handle("app", async (req) => {
-    const { pathname } = new URL(req.url);
-    const decodedPath = decodeURIComponent(pathname);
-    const baseDir = app.isPackaged
-      ? path.join(process.resourcesPath, "app.asar", "out")
-      : path.join(app.getAppPath(), "out");
-
-    const ext = path.extname(decodedPath);
-    let filePath;
-
-    if (ext) {
-      // Es un asset (JS, CSS, imagen, fuente)
-      filePath = path.join(baseDir, decodedPath);
-    } else {
-      // Es una ruta de navegación, buscar index.html o la página correspondiente
-      const nextIdx = decodedPath.indexOf("/_next");
-      const normalized = nextIdx > 0 ? decodedPath.slice(nextIdx) : decodedPath;
-      filePath = path.join(baseDir, `${normalized}.html`);
-      // Fallback a index.html si no existe la página
-      const { existsSync } = await import("fs");
-      if (!existsSync(filePath)) {
-        filePath = path.join(baseDir, "index.html");
-      }
-    }
-
-    return new Response((await import("fs")).readFileSync(filePath), {
-      headers: { "content-type": getMimeType(ext || ".html") },
-    });
-  });
-
   createWindow();
 });
 
@@ -119,23 +174,12 @@ app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();
 });
 
+app.on("before-quit", () => {
+  if (nextHttpServer?.listening) {
+    nextHttpServer.close();
+  }
+});
+
 app.on("activate", () => {
   if (BrowserWindow.getAllWindows().length === 0) createWindow();
 });
-
-function getMimeType(ext) {
-  const types = {
-    ".html": "text/html",
-    ".js": "application/javascript",
-    ".css": "text/css",
-    ".png": "image/png",
-    ".jpg": "image/jpeg",
-    ".svg": "image/svg+xml",
-    ".ico": "image/x-icon",
-    ".json": "application/json",
-    ".woff": "font/woff",
-    ".woff2": "font/woff2",
-    ".ttf": "font/ttf",
-  };
-  return types[ext] ?? "application/octet-stream";
-}

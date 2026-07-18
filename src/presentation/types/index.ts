@@ -31,6 +31,29 @@ export interface DashboardSummaryDTO {
   activeEmployees: number;
 }
 
+export interface DashboardFilterOptionDTO {
+  id: string;
+  name: string;
+}
+
+export interface DashboardAttendanceRowDTO {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  checkInAt: string;
+  checkOutAt: string | null;
+  shiftStatus: "ACTIVO" | "INACTIVO" | "PENDIENTE";
+}
+
+export interface DashboardDataDTO {
+  summary: DashboardSummaryDTO;
+  filters: {
+    employees: DashboardFilterOptionDTO[];
+    shifts: DashboardFilterOptionDTO[];
+  };
+  rows: DashboardAttendanceRowDTO[];
+}
+
 export interface ReportTotalsDTO {
   checkIns: number;
   checkOuts: number;

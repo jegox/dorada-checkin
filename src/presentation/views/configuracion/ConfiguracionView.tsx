@@ -43,7 +43,9 @@ export function ConfiguracionView() {
   const [runtimeSource, setRuntimeSource] = useState("none");
   const [isLoadingDbConfig, setIsLoadingDbConfig] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isTestingConnection, setIsTestingConnection] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
+  const [connectionTestMessage, setConnectionTestMessage] = useState("");
   const [storageFilePath, setStorageFilePath] = useState("");
   const [encryptionAvailable, setEncryptionAvailable] = useState(false);
 
@@ -51,7 +53,8 @@ export function ConfiguracionView() {
     return (
       typeof window !== "undefined" &&
       Boolean(window.electronAPI?.saveDatabaseUrlToStorage) &&
-      Boolean(window.electronAPI?.getDatabaseRuntimeStatus)
+      Boolean(window.electronAPI?.getDatabaseRuntimeStatus) &&
+      Boolean(window.electronAPI?.testDatabaseConnection)
     );
   }, []);
 
@@ -100,6 +103,7 @@ export function ConfiguracionView() {
 
     setIsSaving(true);
     setStatusMessage("");
+    setConnectionTestMessage("");
 
     try {
       await window.electronAPI.saveDatabaseUrlToStorage(value);
@@ -107,9 +111,10 @@ export function ConfiguracionView() {
       setRuntimeSource(runtimeStatus.source);
       setStorageFilePath(runtimeStatus.storageFilePath);
       setEncryptionAvailable(runtimeStatus.encryptionAvailable);
-      setStatusMessage(
-        "Conexión guardada en storage local cifrado. Reinicia la app para aplicar completamente.",
-      );
+      setStatusMessage("Conexión guardada. Recargando la app para aplicar la configuración...");
+      window.setTimeout(() => {
+        window.location.reload();
+      }, 300);
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "No se pudo guardar en storage local.";
@@ -122,6 +127,7 @@ export function ConfiguracionView() {
   const handleClearDatabaseUrl = async () => {
     setIsSaving(true);
     setStatusMessage("");
+    setConnectionTestMessage("");
 
     try {
       await window.electronAPI.clearDatabaseUrlFromStorage();
@@ -135,6 +141,30 @@ export function ConfiguracionView() {
       setStatusMessage("No se pudo eliminar la conexión del storage local cifrado.");
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleTestDatabaseConnection = async () => {
+    setIsTestingConnection(true);
+    setConnectionTestMessage("");
+
+    try {
+      const result = await window.electronAPI.testDatabaseConnection(databaseUrl.trim());
+      if (result.ok) {
+        const database = result.database ? ` Base: ${result.database}.` : "";
+        const targetSchema = result.targetSchema ? ` Schema URL: ${result.targetSchema}.` : "";
+        const schema = result.schema ? ` Schema activa: ${result.schema}.` : "";
+        const searchPath = result.searchPath ? ` search_path: ${result.searchPath}.` : "";
+        setConnectionTestMessage(
+          `${result.message}${database}${targetSchema}${schema}${searchPath}`,
+        );
+      } else {
+        setConnectionTestMessage(`${result.message} [${result.code}]`);
+      }
+    } catch {
+      setConnectionTestMessage("No se pudo ejecutar la prueba de conexión.");
+    } finally {
+      setIsTestingConnection(false);
     }
   };
 
@@ -209,12 +239,22 @@ export function ConfiguracionView() {
                   <Button variant='primary' isDisabled={isSaving} onPress={handleSaveDatabaseUrl}>
                     Guardar en storage cifrado
                   </Button>
+                  <Button
+                    variant='outline'
+                    isDisabled={isSaving || isTestingConnection}
+                    onPress={handleTestDatabaseConnection}
+                  >
+                    Probar conexión
+                  </Button>
                   <Button variant='outline' isDisabled={isSaving} onPress={handleClearDatabaseUrl}>
                     Limpiar storage cifrado
                   </Button>
                 </div>
 
                 {statusMessage ? <p className='text-xs text-default-500'>{statusMessage}</p> : null}
+                {connectionTestMessage ? (
+                  <p className='text-xs text-default-500'>{connectionTestMessage}</p>
+                ) : null}
               </>
             ) : (
               <p className='text-xs text-warning'>

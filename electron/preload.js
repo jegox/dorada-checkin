@@ -7,6 +7,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   getDatabaseUrlFromStorage: () => ipcRenderer.invoke("db:storage-read"),
   saveDatabaseUrlToStorage: (databaseUrl) => ipcRenderer.invoke("db:storage-save", databaseUrl),
   clearDatabaseUrlFromStorage: () => ipcRenderer.invoke("db:storage-clear"),
+  testDatabaseConnection: (databaseUrl) => ipcRenderer.invoke("db:test-connection", databaseUrl),
   // C-5: solo URLs HTTP/HTTPS permitidas
   openExternal: (url) => {
     if (typeof url === "string" && /^https?:\/\//.test(url)) {

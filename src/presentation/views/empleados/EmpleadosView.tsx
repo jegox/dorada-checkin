@@ -17,6 +17,7 @@ import {
   MinusCircle,
   PlusCircle,
   Trash2,
+  AlertCircle,
 } from "lucide-react";
 import { useEmpleados } from "@/presentation/hooks/useEmpleados";
 import { useConfiguraciones } from "@/presentation/hooks/useConfiguraciones";
@@ -255,6 +256,13 @@ export function EmpleadosView() {
         {shifts.length === 0 && !loading && (
           <div className='p-4 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 text-sm'>
             Primero crea al menos un turno en la sección <strong>Turnos</strong>.
+          </div>
+        )}
+
+        {error && !showForm && (
+          <div className='p-4 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm flex gap-2 items-center'>
+            <AlertCircle className='w-4 h-4 shrink-0' />
+            {error}
           </div>
         )}
 

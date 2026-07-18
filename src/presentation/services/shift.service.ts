@@ -1,11 +1,11 @@
 import type { ShiftDTO } from "@/presentation/types";
 import type { CreateShiftDTO } from "@/application/dto";
+import { readApiResponse } from "@/presentation/services/http";
 
 export const shiftService = {
   async getAll(): Promise<ShiftDTO[]> {
     const res = await fetch("/api/shifts");
-    if (!res.ok) throw new Error("Error al obtener turnos");
-    return res.json();
+    return readApiResponse<ShiftDTO[]>(res, "Error al obtener turnos");
   },
 
   async create(dto: CreateShiftDTO): Promise<ShiftDTO> {

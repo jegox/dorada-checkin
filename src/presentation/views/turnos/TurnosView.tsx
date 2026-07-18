@@ -1,6 +1,6 @@
 "use client";
 import { Card, CardContent, CardHeader, Button, Spinner } from "@heroui/react";
-import { Clock, Plus, X } from "lucide-react";
+import { Clock, Plus, X, AlertCircle } from "lucide-react";
 import { useTurnos } from "@/presentation/hooks/useTurnos";
 import { ResultDialog } from "@/presentation/components/ui/ResultDialog";
 import type { ShiftDTO } from "@/presentation/types";
@@ -100,6 +100,13 @@ export function TurnosView() {
               </form>
             </CardContent>
           </Card>
+        )}
+
+        {error && !showForm && (
+          <div className='p-4 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm flex gap-2 items-center'>
+            <AlertCircle className='w-4 h-4 shrink-0' />
+            {error}
+          </div>
         )}
 
         <Card>

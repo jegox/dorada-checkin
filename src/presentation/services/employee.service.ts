@@ -1,18 +1,17 @@
 import type { EmployeeDTO } from "@/presentation/types";
 import type { CreateEmployeeDTO, UpdateEmployeeDTO } from "@/application/dto";
+import { readApiResponse } from "@/presentation/services/http";
 
 export const employeeService = {
   async getAll(): Promise<EmployeeDTO[]> {
     const res = await fetch("/api/employees");
-    if (!res.ok) throw new Error("Error al obtener empleados");
-    return res.json();
+    return readApiResponse<EmployeeDTO[]>(res, "Error al obtener empleados");
   },
 
   async findByDocument(document: string): Promise<EmployeeDTO | null> {
     const res = await fetch(`/api/employees?document=${encodeURIComponent(document)}`);
     if (res.status === 404) return null;
-    if (!res.ok) throw new Error("Error al buscar empleado");
-    return res.json();
+    return readApiResponse<EmployeeDTO>(res, "Error al buscar empleado");
   },
 
   async create(dto: CreateEmployeeDTO): Promise<EmployeeDTO> {

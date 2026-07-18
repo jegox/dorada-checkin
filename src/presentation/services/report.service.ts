@@ -1,4 +1,5 @@
 import type { AttendancePeriodReportDTO, PayrollLiquidatedReportDTO } from "@/presentation/types";
+import { readApiResponse } from "@/presentation/services/http";
 
 export const reportService = {
   async getAttendanceReport(filters?: {
@@ -14,8 +15,7 @@ export const reportService = {
       : "/api/reports/attendance";
 
     const res = await fetch(url);
-    if (!res.ok) throw new Error("Error al cargar reporte de empleados");
-    return res.json();
+    return readApiResponse<AttendancePeriodReportDTO>(res, "Error al cargar reporte de empleados");
   },
 
   async getPayrollReport(period?: string): Promise<PayrollLiquidatedReportDTO> {
@@ -24,7 +24,6 @@ export const reportService = {
       : "/api/reports/payroll";
 
     const res = await fetch(url);
-    if (!res.ok) throw new Error("Error al cargar reporte de nomina");
-    return res.json();
+    return readApiResponse<PayrollLiquidatedReportDTO>(res, "Error al cargar reporte de nomina");
   },
 };
